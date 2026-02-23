@@ -15,11 +15,11 @@ struct DriveHardGameView: View {
             DriveHardSceneView(vm: vm)
                 .ignoresSafeArea()
                 .gesture(
-                    DragGesture(minimumDistance: 20)
+                    DragGesture(minimumDistance: 0)
                         .onChanged { value in
                             guard !swipeHandled else { return }
                             let dx = value.translation.width
-                            guard abs(dx) > 20, abs(dx) > abs(value.translation.height) else { return }
+                            guard abs(dx) > 10, abs(dx) > abs(value.translation.height) else { return }
                             swipeHandled = true
                             if dx < 0 {
                                 vm.swipeLeft()
@@ -27,15 +27,16 @@ struct DriveHardGameView: View {
                                 vm.swipeRight()
                             }
                         }
-                        .onEnded { _ in
+                        .onEnded { value in
+                            // Treat minimal-movement drags as taps
+                            if !swipeHandled && abs(value.translation.width) < 10 && abs(value.translation.height) < 10 {
+                                if vm.gameState == .waiting {
+                                    vm.tapToStart()
+                                }
+                            }
                             swipeHandled = false
                         }
                 )
-                .onTapGesture {
-                    if vm.gameState == .waiting {
-                        vm.tapToStart()
-                    }
-                }
 
             // HUD overlay
             VStack {

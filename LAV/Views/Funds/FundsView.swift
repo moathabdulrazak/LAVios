@@ -4,7 +4,6 @@ import CoreImage.CIFilterBuiltins
 struct FundsView: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(GamesViewModel.self) private var gamesVM
-    @Environment(\.dismiss) private var dismiss
     @State private var vm = FundsViewModel()
     @State private var appeared = false
 
@@ -37,13 +36,11 @@ struct FundsView: View {
                                 .staggerIn(appeared: appeared, delay: 0.20)
                         }
 
-                        Spacer(minLength: 40)
+                        Spacer(minLength: 120)
                     }
                 }
             }
         }
-        .navigationBarBackButtonHidden(true)
-        .toolbar(.hidden, for: .navigationBar)
         .task { await vm.loadData() }
         .onAppear {
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
@@ -54,25 +51,15 @@ struct FundsView: View {
 
     private var header: some View {
         HStack {
-            Button { dismiss() } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 14, weight: .bold))
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Funds")
+                    .font(.system(size: 26, weight: .black))
                     .foregroundColor(.white)
-                    .frame(width: 36, height: 36)
-                    .background(Color.lavSurface)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.white.opacity(0.06), lineWidth: 1))
+                Text("Deposit & withdraw")
+                    .font(.system(size: 13))
+                    .foregroundColor(.lavTextSecondary)
             }
-
             Spacer()
-
-            Text("Funds")
-                .font(.system(size: 20, weight: .black))
-                .foregroundColor(.white)
-
-            Spacer()
-
-            Color.clear.frame(width: 36, height: 36)
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)

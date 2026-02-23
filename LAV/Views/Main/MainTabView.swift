@@ -4,6 +4,7 @@ enum AppTab: String, CaseIterable, Identifiable {
     case results = "Results"
     case play = "Play"
     case earnings = "Earnings"
+    case funds = "Funds"
 
     var id: String { rawValue }
 
@@ -12,6 +13,7 @@ enum AppTab: String, CaseIterable, Identifiable {
         case .play: return "gamecontroller.fill"
         case .results: return "trophy.fill"
         case .earnings: return "chart.bar.fill"
+        case .funds: return "wallet.pass.fill"
         }
     }
 
@@ -20,6 +22,7 @@ enum AppTab: String, CaseIterable, Identifiable {
         case .play: return .lavEmerald
         case .results: return .lavCyan
         case .earnings: return .lavPurple
+        case .funds: return .lavYellow
         }
     }
 }
@@ -29,54 +32,50 @@ struct MainTabView: View {
     @Environment(GamesViewModel.self) private var gamesVM
     @State private var selectedTab: AppTab = .play
     @State private var showProfile = false
-    @State private var showFunds = false
     @State private var appeared = false
     @State private var playPulse = false
     @State private var balancePop = false
     @State private var lastBalance: Double = 0
 
     var body: some View {
-        NavigationStack {
-            ZStack(alignment: .bottom) {
-                Color.lavBackground.ignoresSafeArea()
+        ZStack(alignment: .bottom) {
+            Color.lavBackground.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    topBar
-                        .staggerIn(appeared: appeared, delay: 0)
+            VStack(spacing: 0) {
+                topBar
+                    .staggerIn(appeared: appeared, delay: 0)
 
-                    TabView(selection: $selectedTab) {
-                        ResultsView()
-                            .tag(AppTab.results)
-                        GamesView()
-                            .tag(AppTab.play)
-                        EarningsView()
-                            .tag(AppTab.earnings)
-                    }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
-                    .ignoresSafeArea(edges: .bottom)
+                TabView(selection: $selectedTab) {
+                    ResultsView()
+                        .tag(AppTab.results)
+                    GamesView()
+                        .tag(AppTab.play)
+                    EarningsView()
+                        .tag(AppTab.earnings)
+                    FundsView()
+                        .tag(AppTab.funds)
                 }
-
-                // Tab bar
-                tabBar
-                    .staggerIn(appeared: appeared, delay: 0.12)
-
-                // Balance reveal overlay
-                if gamesVM.showBalanceReveal {
-                    BalanceRevealView(
-                        oldBalance: gamesVM.balanceRevealOldBalance,
-                        newBalance: gamesVM.balanceRevealNewBalance,
-                        isWin: gamesVM.balanceRevealIsWin
-                    ) {
-                        withAnimation(.easeOut(duration: 0.3)) {
-                            gamesVM.showBalanceReveal = false
-                        }
-                    }
-                    .transition(.opacity)
-                    .zIndex(100)
-                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .ignoresSafeArea(edges: .bottom)
             }
-            .navigationDestination(isPresented: $showFunds) {
-                FundsView()
+
+            // Tab bar
+            tabBar
+                .staggerIn(appeared: appeared, delay: 0.12)
+
+            // Balance reveal overlay
+            if gamesVM.showBalanceReveal {
+                BalanceRevealView(
+                    oldBalance: gamesVM.balanceRevealOldBalance,
+                    newBalance: gamesVM.balanceRevealNewBalance,
+                    isWin: gamesVM.balanceRevealIsWin
+                ) {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        gamesVM.showBalanceReveal = false
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(100)
             }
         }
         .sheet(isPresented: $showProfile) {
@@ -145,8 +144,12 @@ struct MainTabView: View {
 
             Spacer()
 
-            // Wallet pill — tap to open Funds
-            Button { showFunds = true } label: {
+            // Wallet pill — taps to Funds tab
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.72)) {
+                    selectedTab = .funds
+                }
+            } label: {
                 HStack(spacing: 6) {
                     Text(gamesVM.isLoadingBalance && gamesVM.walletBalance == 0 ? "-.--" : String(format: "%.3f", gamesVM.walletBalance))
                         .font(.system(size: 14, weight: .bold, design: .rounded))
@@ -171,7 +174,7 @@ struct MainTabView: View {
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 20)
-        .padding(.top, 6)
+        .padding(.top, 16)
         .padding(.bottom, 10)
     }
 
@@ -191,11 +194,13 @@ struct MainTabView: View {
             HStack(alignment: .bottom, spacing: 0) {
                 sideTab(.results)
                 Spacer()
+                sideTab(.earnings)
+                Spacer()
                 centerPlayButton
                 Spacer()
-                sideTab(.earnings)
+                sideTab(.funds)
             }
-            .padding(.horizontal, 32)
+            .padding(.horizontal, 24)
             .padding(.bottom, 16)
             .background(Color.lavBackground)
         }

@@ -20,12 +20,18 @@ struct ResultsView: View {
                             .staggerIn(appeared: appeared, delay: 0.06)
                     }
 
-                    emptyState
-                        .staggerIn(appeared: appeared, delay: 0.12)
+                    if !gamesVM.earningsHistory.isEmpty {
+                        gameHistoryList
+                            .staggerIn(appeared: appeared, delay: 0.12)
+                    } else {
+                        emptyState
+                            .staggerIn(appeared: appeared, delay: 0.12)
+                    }
 
                     Spacer(minLength: 120)
                 }
             }
+            .refreshable { await gamesVM.loadEarnings() }
         }
         .onAppear {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appeared = true }
@@ -85,6 +91,93 @@ struct ResultsView: View {
         }
     }
 
+    // MARK: - Game History List
+
+    private var gameHistoryList: some View {
+        VStack(spacing: 2) {
+            ForEach(gamesVM.earningsHistory) { game in
+                gameRow(game)
+            }
+        }
+        .padding(16)
+        .premiumCard(cornerRadius: 22)
+        .padding(.horizontal, 20)
+    }
+
+    private func gameRow(_ game: EarningsGame) -> some View {
+        let isWin = game.result == "win"
+        let amount = game.amount ?? 0
+
+        return HStack(spacing: 12) {
+            // Result icon
+            Circle()
+                .fill((isWin ? Color.lavEmerald : Color.lavRed).opacity(0.1))
+                .frame(width: 40, height: 40)
+                .overlay(
+                    Image(systemName: isWin ? "checkmark" : "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(isWin ? .lavEmerald : .lavRed)
+                )
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(gameDisplayName(game.gameType ?? ""))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+
+                HStack(spacing: 6) {
+                    Text(isWin ? "Won" : "Lost")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(isWin ? .lavEmerald : .lavRed)
+
+                    if let entry = game.entryAmount, entry > 0 {
+                        Text(String(format: "%.2f SOL entry", entry))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.lavTextMuted)
+                    }
+                }
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(String(format: "%@%.4f", amount >= 0 ? "+" : "", amount))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundColor(amount >= 0 ? .lavEmerald : .lavRed)
+
+                Text(relativeTime(game.createdAt))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.lavTextMuted)
+            }
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 4)
+    }
+
+    private func gameDisplayName(_ type: String) -> String {
+        switch type {
+        case "drivehard": return "Drive Hard"
+        case "solsnake": return "SolSnake"
+        case "rocketsol": return "Rocket Sol"
+        case "warp": return "Warp"
+        case "dropfusion": return "Drop Fusion"
+        case "bountyboard": return "Bounty Board"
+        default: return type.capitalized
+        }
+    }
+
+    private func relativeTime(_ dateStr: String?) -> String {
+        guard let dateStr else { return "" }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = formatter.date(from: dateStr) else { return dateStr }
+        let seconds = Int(-date.timeIntervalSinceNow)
+        if seconds < 60 { return "Just now" }
+        if seconds < 3600 { return "\(seconds / 60)m ago" }
+        if seconds < 86400 { return "\(seconds / 3600)h ago" }
+        return "\(seconds / 86400)d ago"
+    }
+
     // MARK: - Empty State
 
     private var emptyState: some View {
@@ -121,28 +214,7 @@ struct ResultsView: View {
                     .multilineTextAlignment(.center)
                     .lineSpacing(3)
             }
-
-            comingSoonBadge
         }
         .frame(maxWidth: .infinity)
-    }
-
-    private var comingSoonBadge: some View {
-        HStack(spacing: 5) {
-            Circle()
-                .fill(Color.lavCyan)
-                .frame(width: 5, height: 5)
-                .shadow(color: .lavCyan.opacity(glowPulse ? 0.8 : 0.2), radius: 3)
-            Text("COMING SOON")
-                .font(.system(size: 10, weight: .black))
-                .tracking(2)
-        }
-        .foregroundColor(.lavCyan)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color.lavCyan.opacity(0.06))
-        .clipShape(Capsule())
-        .overlay(Capsule().stroke(Color.lavCyan.opacity(glowPulse ? 0.25 : 0.08), lineWidth: 1))
-        .shadow(color: .lavCyan.opacity(glowPulse ? 0.15 : 0), radius: 8)
     }
 }

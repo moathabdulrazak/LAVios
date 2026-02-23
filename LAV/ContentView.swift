@@ -89,40 +89,27 @@ struct ContentView: View {
                 .scaleEffect(ringScale)
                 .opacity(ringOpacity)
 
-            VStack(spacing: 24) {
+            VStack(spacing: 20) {
                 // Logo
                 ZStack {
                     Image("LAVLogo")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 100, height: 100)
-                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .frame(width: 110, height: 110)
+                        .clipShape(RoundedRectangle(cornerRadius: 26))
                         .shadow(color: .lavEmerald.opacity(0.6), radius: 30)
                 }
                 .scaleEffect(logoScale)
                 .opacity(logoOpacity)
 
-                // Title
-                VStack(spacing: 8) {
-                    Text("LAV")
-                        .font(.system(size: 52, weight: .black, design: .rounded))
-                        .tracking(14)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.white, Color.lavEmerald],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-
-                    Text("PLAY  \u{2022}  WIN  \u{2022}  EARN")
-                        .font(.system(size: 11, weight: .heavy))
-                        .tracking(4)
-                        .foregroundColor(.lavEmerald)
-                        .opacity(tagOpacity)
-                }
-                .offset(y: textOffset)
-                .opacity(textOpacity)
+                // Tagline
+                Text("PLAY  \u{2022}  WIN  \u{2022}  EARN")
+                    .font(.system(size: 11, weight: .heavy))
+                    .tracking(4)
+                    .foregroundColor(.lavEmerald)
+                    .opacity(tagOpacity)
+                    .offset(y: textOffset)
+                    .opacity(textOpacity)
             }
         }
     }
