@@ -1,13 +1,12 @@
 #include <metal_stdlib>
 using namespace metal;
-#include <SceneKit/scn_metal>
 
 // Borderlands-style Sobel edge detection post-process for Warp
 // Purple-tinted edge color matching space aesthetic
 
 struct WarpEdgeVertexIn {
-    float4 position [[attribute(SCNVertexSemanticPosition)]];
-    float2 texcoord [[attribute(SCNVertexSemanticTexcoord0)]];
+    float4 position [[attribute(0)]];
+    float2 texcoord [[attribute(7)]];
 };
 
 struct WarpEdgeVertexOut {
