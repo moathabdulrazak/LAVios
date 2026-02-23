@@ -175,7 +175,7 @@ struct MainTabView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 16)
-        .padding(.bottom, 10)
+        .padding(.bottom, 12)
     }
 
     // MARK: - Tab Bar
