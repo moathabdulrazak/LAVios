@@ -29,34 +29,55 @@ struct MainTabView: View {
     @Environment(GamesViewModel.self) private var gamesVM
     @State private var selectedTab: AppTab = .play
     @State private var showProfile = false
+    @State private var showFunds = false
     @State private var appeared = false
     @State private var playPulse = false
     @State private var balancePop = false
     @State private var lastBalance: Double = 0
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.lavBackground.ignoresSafeArea()
+        NavigationStack {
+            ZStack(alignment: .bottom) {
+                Color.lavBackground.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                topBar
-                    .staggerIn(appeared: appeared, delay: 0)
+                VStack(spacing: 0) {
+                    topBar
+                        .staggerIn(appeared: appeared, delay: 0)
 
-                TabView(selection: $selectedTab) {
-                    ResultsView()
-                        .tag(AppTab.results)
-                    GamesView()
-                        .tag(AppTab.play)
-                    EarningsView()
-                        .tag(AppTab.earnings)
+                    TabView(selection: $selectedTab) {
+                        ResultsView()
+                            .tag(AppTab.results)
+                        GamesView()
+                            .tag(AppTab.play)
+                        EarningsView()
+                            .tag(AppTab.earnings)
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .ignoresSafeArea(edges: .bottom)
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .ignoresSafeArea(edges: .bottom)
-            }
 
-            // Tab bar
-            tabBar
-                .staggerIn(appeared: appeared, delay: 0.12)
+                // Tab bar
+                tabBar
+                    .staggerIn(appeared: appeared, delay: 0.12)
+
+                // Balance reveal overlay
+                if gamesVM.showBalanceReveal {
+                    BalanceRevealView(
+                        oldBalance: gamesVM.balanceRevealOldBalance,
+                        newBalance: gamesVM.balanceRevealNewBalance,
+                        isWin: gamesVM.balanceRevealIsWin
+                    ) {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            gamesVM.showBalanceReveal = false
+                        }
+                    }
+                    .transition(.opacity)
+                    .zIndex(100)
+                }
+            }
+            .navigationDestination(isPresented: $showFunds) {
+                FundsView()
+            }
         }
         .sheet(isPresented: $showProfile) {
             ProfileSheet()
@@ -124,27 +145,30 @@ struct MainTabView: View {
 
             Spacer()
 
-            // Wallet pill
-            HStack(spacing: 6) {
-                Text(gamesVM.isLoadingBalance && gamesVM.walletBalance == 0 ? "-.--" : String(format: "%.3f", gamesVM.walletBalance))
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .monospacedDigit()
-                    .contentTransition(.numericText(value: gamesVM.walletBalance))
+            // Wallet pill — tap to open Funds
+            Button { showFunds = true } label: {
+                HStack(spacing: 6) {
+                    Text(gamesVM.isLoadingBalance && gamesVM.walletBalance == 0 ? "-.--" : String(format: "%.3f", gamesVM.walletBalance))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: gamesVM.walletBalance))
 
-                Text("SOL")
-                    .font(.system(size: 9, weight: .black))
-                    .tracking(1)
-                    .foregroundColor(.lavTextMuted)
+                    Text("SOL")
+                        .font(.system(size: 9, weight: .black))
+                        .tracking(1)
+                        .foregroundColor(.lavTextMuted)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule()
+                        .fill(Color.lavSurface)
+                        .overlay(Capsule().stroke(Color.white.opacity(0.06), lineWidth: 1))
+                )
+                .scaleEffect(balancePop ? 1.08 : 1)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(Color.lavSurface)
-                    .overlay(Capsule().stroke(Color.white.opacity(0.06), lineWidth: 1))
-            )
-            .scaleEffect(balancePop ? 1.08 : 1)
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 20)
         .padding(.top, 6)

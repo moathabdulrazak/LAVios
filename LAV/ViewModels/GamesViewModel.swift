@@ -11,6 +11,11 @@ final class GamesViewModel {
     var isLoadingBalance = false
     var isLoadingEarnings = false
 
+    // Earnings history + chart
+    var earningsHistory: [EarningsGame] = []
+    var earningsChart: [EarningsChartDay] = []
+    var isLoadingHistory = false
+
     // Match flow state
     var isJoining = false
     var isSubmitting = false
@@ -32,6 +37,12 @@ final class GamesViewModel {
     var solSnakeVerificationToken: String?
     var solSnakePaymentTimestamp: Int?
 
+    // Balance reveal animation
+    var showBalanceReveal = false
+    var balanceRevealOldBalance: Double = 0
+    var balanceRevealNewBalance: Double = 0
+    var balanceRevealIsWin = false
+
     private let gameService = GameService.shared
 
     // MARK: - Load Earnings
@@ -40,11 +51,33 @@ final class GamesViewModel {
     func loadEarnings() async {
         isLoadingEarnings = true
         do {
-            earnings = try await gameService.getEarningsStats()
+            async let statsTask = gameService.getEarningsStats()
+            async let historyTask = gameService.getEarningsHistory()
+            async let chartTask = gameService.getEarningsChart()
+
+            let (stats, history, chart) = try await (statsTask, historyTask, chartTask)
+            earnings = stats
+            earningsHistory = history
+            earningsChart = chart
         } catch {
             print("[LAV] Failed to load earnings: \(error)")
         }
         isLoadingEarnings = false
+    }
+
+    @MainActor
+    func loadEarningsHistory() async {
+        isLoadingHistory = true
+        do {
+            async let historyTask = gameService.getEarningsHistory()
+            async let chartTask = gameService.getEarningsChart()
+            let (history, chart) = try await (historyTask, chartTask)
+            earningsHistory = history
+            earningsChart = chart
+        } catch {
+            print("[LAV] Failed to load earnings history: \(error)")
+        }
+        isLoadingHistory = false
     }
 
     // MARK: - Load Wallet Balance
@@ -195,6 +228,7 @@ final class GamesViewModel {
         }
 
         isSubmitting = true
+        let oldBalance = walletBalance
         print("[LAV Game] Submitting score: \(lastGameScore) duration: \(lastGameDurationMs)ms matchId: \(matchId) inputs: \(lastInputRecording.count)")
 
         do {
@@ -209,31 +243,46 @@ final class GamesViewModel {
 
             print("[LAV Game] Submit response: success=\(response.success ?? false) result=\(response.result ?? "nil") payout=\(response.payout.map { String($0) } ?? "nil") match.status=\(response.match?.status ?? "nil") match.youWon=\(response.match?.youWon.map { String($0) } ?? "nil")")
 
-            // Handle both response formats:
-            // Format 1: { success, result: "win"/"loss"/"waiting", payout }
-            // Format 2: { match: { status: "completed", you_won: true, payout_amount } }
+            var resolvedResult: MatchResult = .waiting
+
             if let match = response.match {
                 if match.status == "completed" {
                     if match.youWon == true {
-                        matchResult = .win(payout: match.payoutAmount ?? 0)
+                        resolvedResult = .win(payout: match.payoutAmount ?? 0)
                     } else {
-                        matchResult = .loss
+                        resolvedResult = .loss
                     }
-                } else {
-                    matchResult = .waiting
                 }
             } else if response.success == true {
                 switch response.result {
                 case "win":
-                    matchResult = .win(payout: response.payout ?? 0)
+                    resolvedResult = .win(payout: response.payout ?? 0)
                 case "loss":
-                    matchResult = .loss
+                    resolvedResult = .loss
                 default:
-                    matchResult = .waiting
+                    break
                 }
             } else {
                 print("[LAV Game] Submit failed: \(response.error ?? "unknown")")
-                matchResult = .waiting
+            }
+
+            matchResult = resolvedResult
+
+            // Trigger balance reveal for completed matches
+            if resolvedResult != .waiting {
+                let payout: Double
+                if case .win(let p) = resolvedResult { payout = p } else { payout = 0 }
+                let entry = matchData?.entryAmount ?? selectedTier?.amount ?? 0
+                let newBalance: Double
+                if case .win = resolvedResult {
+                    newBalance = oldBalance + payout - entry
+                } else {
+                    newBalance = oldBalance - entry
+                }
+                balanceRevealOldBalance = oldBalance
+                balanceRevealNewBalance = newBalance
+                balanceRevealIsWin = resolvedResult.isWin
+                showBalanceReveal = true
             }
         } catch {
             print("[LAV Game] Submit error: \(error)")

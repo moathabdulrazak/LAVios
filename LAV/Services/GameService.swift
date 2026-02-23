@@ -123,6 +123,63 @@ final class GameService {
             path: "/api/earnings/stats"
         )
     }
+
+    // MARK: - Get Earnings History
+    // GET LAVSNIPE_URL/api/earnings/history?limit=50
+
+    func getEarningsHistory(limit: Int = 50) async throws -> [EarningsGame] {
+        let response: EarningsHistoryResponse = try await client.request(
+            baseURL: Config.lavsnipeURL,
+            path: "/api/earnings/history?limit=\(limit)"
+        )
+        return response.games ?? []
+    }
+
+    // MARK: - Get Earnings Chart
+    // GET API_URL/api/earnings/chart
+
+    func getEarningsChart() async throws -> [EarningsChartDay] {
+        let response: EarningsChartResponse = try await client.request(
+            baseURL: Config.apiURL,
+            path: "/api/earnings/chart"
+        )
+        return response.chart ?? []
+    }
+
+    // MARK: - Get SOL Price
+    // GET API_URL/api/sol-price
+
+    func getSolPrice() async throws -> Double {
+        let response: SolPriceResponse = try await client.request(
+            baseURL: Config.apiURL,
+            path: "/api/sol-price"
+        )
+        return response.price ?? 0
+    }
+
+    // MARK: - Get Withdrawals
+    // GET LAVSNIPE_URL/api/wallet/withdrawals?limit=10
+
+    func getWithdrawals(limit: Int = 10) async throws -> [Withdrawal] {
+        let response: WithdrawalsResponse = try await client.request(
+            baseURL: Config.lavsnipeURL,
+            path: "/api/wallet/withdrawals?limit=\(limit)"
+        )
+        return response.withdrawals ?? []
+    }
+
+    // MARK: - Withdraw
+    // POST LAVSNIPE_URL/api/wallet/withdraw
+
+    func withdraw(destination: String, amount: Double) async throws -> WithdrawResponse {
+        let body = WithdrawRequest(destination: destination, amount: amount)
+        return try await client.request(
+            baseURL: Config.lavsnipeURL,
+            path: "/api/wallet/withdraw",
+            method: "POST",
+            body: body
+        )
+    }
 }
 
 // MARK: - Solana RPC Models

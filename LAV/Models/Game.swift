@@ -324,3 +324,83 @@ struct EarningsStats: Decodable {
     let percentile: Double?
     let rank: Int?
 }
+
+// MARK: - Earnings History
+
+struct EarningsGame: Decodable, Identifiable {
+    let id: String
+    let gameType: String?
+    let result: String?
+    let amount: Double?
+    let entryAmount: Double?
+    let createdAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case gameType = "game_type"
+        case result
+        case amount
+        case entryAmount = "entry_amount"
+        case createdAt = "created_at"
+    }
+}
+
+struct EarningsHistoryResponse: Decodable {
+    let games: [EarningsGame]?
+}
+
+struct EarningsChartDay: Decodable, Identifiable {
+    var id: String { date }
+    let date: String
+    let earnings: Double
+}
+
+struct EarningsChartResponse: Decodable {
+    let chart: [EarningsChartDay]?
+}
+
+// MARK: - Funds / Withdrawal Models
+
+struct SolPriceResponse: Decodable {
+    let price: Double?
+    let currency: String?
+}
+
+struct Withdrawal: Decodable, Identifiable {
+    let id: String
+    let amount: Double?
+    let destination: String?
+    let status: String?
+    let txSignature: String?
+    let createdAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case amount
+        case destination
+        case status
+        case txSignature = "tx_signature"
+        case createdAt = "created_at"
+    }
+}
+
+struct WithdrawalsResponse: Decodable {
+    let withdrawals: [Withdrawal]?
+}
+
+struct WithdrawRequest: Encodable {
+    let destination: String
+    let amount: Double
+}
+
+struct WithdrawResponse: Decodable {
+    let success: Bool?
+    let txSignature: String?
+    let error: String?
+
+    enum CodingKeys: String, CodingKey {
+        case success
+        case txSignature = "tx_signature"
+        case error
+    }
+}

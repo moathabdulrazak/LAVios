@@ -5,6 +5,7 @@ struct DriveHardGameView: View {
     var isMatchMode = false
     @State private var vm = DriveHardViewModel()
     @State private var gameStartTime: Date?
+    @State private var swipeHandled = false
     @Environment(\.dismiss) private var dismiss
     @Environment(GamesViewModel.self) private var gamesVM
 
@@ -14,16 +15,20 @@ struct DriveHardGameView: View {
             DriveHardSceneView(vm: vm)
                 .ignoresSafeArea()
                 .gesture(
-                    DragGesture(minimumDistance: 30)
-                        .onEnded { value in
+                    DragGesture(minimumDistance: 20)
+                        .onChanged { value in
+                            guard !swipeHandled else { return }
                             let dx = value.translation.width
-                            if abs(dx) > abs(value.translation.height) {
-                                if dx < 0 {
-                                    vm.swipeLeft()
-                                } else {
-                                    vm.swipeRight()
-                                }
+                            guard abs(dx) > 20, abs(dx) > abs(value.translation.height) else { return }
+                            swipeHandled = true
+                            if dx < 0 {
+                                vm.swipeLeft()
+                            } else {
+                                vm.swipeRight()
                             }
+                        }
+                        .onEnded { _ in
+                            swipeHandled = false
                         }
                 )
                 .onTapGesture {

@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		053A8CFA2D5AD3E665081068 /* GameDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E952567442D446BA7C6F1458 /* GameDetailView.swift */; };
+		FD0002000000000000000001 /* FundsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0001000000000000000001 /* FundsView.swift */; };
+		FD0002000000000000000002 /* FundsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0001000000000000000002 /* FundsViewModel.swift */; };
+		FD0002000000000000000003 /* BalanceRevealView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0001000000000000000003 /* BalanceRevealView.swift */; };
 		1030F224AA7F0932E638FDFD /* EarningsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF593EAE3703C833B8FE522E /* EarningsPanel.swift */; };
 		1AD8B08807178032C8949B9F /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D3901C8042B619BE6B76CC /* AuthViewModel.swift */; };
 		1D2BA331F475ACA962ACD184 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9CA8D1CA2DBC4848EBCA53B /* LoadingView.swift */; };
@@ -89,6 +92,9 @@
 
 /* Begin PBXFileReference section */
 		13C1A428A80AA09DFEFF96F1 /* ParticleBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleBackground.swift; sourceTree = "<group>"; };
+		FD0001000000000000000001 /* FundsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FundsView.swift; sourceTree = "<group>"; };
+		FD0001000000000000000002 /* FundsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FundsViewModel.swift; sourceTree = "<group>"; };
+		FD0001000000000000000003 /* BalanceRevealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceRevealView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F7A8B9C0D1E2F /* SignupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupView.swift; sourceTree = "<group>"; };
 		1D12665DEB7687B3A468C6EB /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		27B5083F22525E1314C342A2 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
@@ -189,6 +195,7 @@
 				3A49B425F3058EF32044FDC2 /* EntryTierButton.swift */,
 				370507E56D625C717E619480 /* MatchResultView.swift */,
 				DF593EAE3703C833B8FE522E /* EarningsPanel.swift */,
+				FD0001000000000000000003 /* BalanceRevealView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -211,8 +218,17 @@
 				B41F4EA4FF8E44BF83707606 /* Main */,
 				6BCDDB9E01004CBBBB12F365 /* Earnings */,
 				B8C3714741A3478BA4D743D5 /* Results */,
+				FD0003000000000000000001 /* Funds */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		FD0003000000000000000001 /* Funds */ = {
+			isa = PBXGroup;
+			children = (
+				FD0001000000000000000001 /* FundsView.swift */,
+			);
+			path = Funds;
 			sourceTree = "<group>";
 		};
 		6BCDDB9E01004CBBBB12F365 /* Earnings */ = {
@@ -238,6 +254,7 @@
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* SignupViewModel.swift */,
 				53D3901C8042B619BE6B76CC /* AuthViewModel.swift */,
 				FE4F38DE52781DC0D4B89901 /* GamesViewModel.swift */,
+				FD0001000000000000000002 /* FundsViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -605,6 +622,9 @@
 				SN0002000000000000000007 /* SolSnakeGameView.swift in Sources */,
 				SN0002000000000000000008 /* ColyseusSchema.swift in Sources */,
 				SN0002000000000000000009 /* SolSnakeNetworkManager.swift in Sources */,
+				FD0002000000000000000001 /* FundsView.swift in Sources */,
+				FD0002000000000000000002 /* FundsViewModel.swift in Sources */,
+				FD0002000000000000000003 /* BalanceRevealView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

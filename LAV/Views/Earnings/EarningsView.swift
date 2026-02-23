@@ -21,14 +21,24 @@ struct EarningsView: View {
                         heroCard(earnings)
                             .staggerIn(appeared: appeared, delay: 0.06)
 
+                        if !gamesVM.earningsChart.isEmpty {
+                            chartSection
+                                .staggerIn(appeared: appeared, delay: 0.10)
+                        }
+
                         winRateSection(earnings)
-                            .staggerIn(appeared: appeared, delay: 0.12)
+                            .staggerIn(appeared: appeared, delay: 0.14)
 
                         statsGrid(earnings)
-                            .staggerIn(appeared: appeared, delay: 0.18)
+                            .staggerIn(appeared: appeared, delay: 0.20)
 
                         rankSection(earnings)
-                            .staggerIn(appeared: appeared, delay: 0.24)
+                            .staggerIn(appeared: appeared, delay: 0.26)
+
+                        if !gamesVM.earningsHistory.isEmpty {
+                            historySection
+                                .staggerIn(appeared: appeared, delay: 0.30)
+                        }
                     } else if gamesVM.isLoadingEarnings {
                         loadingState
                     } else {
@@ -386,6 +396,144 @@ struct EarningsView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 80)
+    }
+
+    // MARK: - 7-Day Chart
+
+    private var chartSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("LAST 7 DAYS")
+                .font(.system(size: 10, weight: .black))
+                .tracking(2)
+                .foregroundColor(.lavTextMuted)
+                .padding(.horizontal, 4)
+
+            let data = gamesVM.earningsChart.suffix(7)
+            let maxVal = data.map { abs($0.earnings) }.max() ?? 1
+            let barScale = maxVal > 0 ? maxVal : 1
+
+            HStack(alignment: .bottom, spacing: 8) {
+                ForEach(Array(data), id: \.id) { day in
+                    VStack(spacing: 6) {
+                        let isPositive = day.earnings >= 0
+                        let barHeight = max(CGFloat(abs(day.earnings) / barScale) * 80, 4)
+
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(
+                                LinearGradient(
+                                    colors: isPositive
+                                        ? [.lavEmerald, .lavEmerald.opacity(0.6)]
+                                        : [.lavRed, .lavRed.opacity(0.6)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .frame(height: barHeight)
+                            .shadow(color: (isPositive ? Color.lavEmerald : Color.lavRed).opacity(0.3), radius: 4)
+
+                        Text(shortDayLabel(day.date))
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(.lavTextMuted)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 110)
+        }
+        .padding(20)
+        .premiumCard(cornerRadius: 22)
+        .padding(.horizontal, 20)
+    }
+
+    private func shortDayLabel(_ dateStr: String) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let date = formatter.date(from: dateStr) else {
+            return String(dateStr.suffix(2))
+        }
+        let dayFormatter = DateFormatter()
+        dayFormatter.dateFormat = "EEE"
+        return dayFormatter.string(from: date).uppercased()
+    }
+
+    // MARK: - Game History
+
+    private var historySection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("RECENT GAMES")
+                .font(.system(size: 10, weight: .black))
+                .tracking(2)
+                .foregroundColor(.lavTextMuted)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 2) {
+                ForEach(gamesVM.earningsHistory.prefix(20)) { game in
+                    historyRow(game)
+                }
+            }
+        }
+        .padding(20)
+        .premiumCard(cornerRadius: 22)
+        .padding(.horizontal, 20)
+    }
+
+    private func historyRow(_ game: EarningsGame) -> some View {
+        let isWin = game.result == "win"
+        let amount = game.amount ?? 0
+
+        return HStack(spacing: 12) {
+            // Game type icon
+            Circle()
+                .fill((isWin ? Color.lavEmerald : Color.lavRed).opacity(0.1))
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Image(systemName: isWin ? "checkmark" : "xmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(isWin ? .lavEmerald : .lavRed)
+                )
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(gameDisplayName(game.gameType ?? ""))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white)
+                Text(relativeTime(game.createdAt))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.lavTextMuted)
+            }
+
+            Spacer()
+
+            Text(String(format: "%@%.4f", amount >= 0 ? "+" : "", amount))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundColor(amount >= 0 ? .lavEmerald : .lavRed)
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 4)
+    }
+
+    private func gameDisplayName(_ type: String) -> String {
+        switch type {
+        case "drivehard": return "Drive Hard"
+        case "solsnake": return "SolSnake"
+        case "rocketsol": return "Rocket Sol"
+        case "warp": return "Warp"
+        case "dropfusion": return "Drop Fusion"
+        case "bountyboard": return "Bounty Board"
+        default: return type.capitalized
+        }
+    }
+
+    private func relativeTime(_ dateStr: String?) -> String {
+        guard let dateStr else { return "" }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = formatter.date(from: dateStr) else { return dateStr }
+        let seconds = Int(-date.timeIntervalSinceNow)
+        if seconds < 60 { return "Just now" }
+        if seconds < 3600 { return "\(seconds / 60)m ago" }
+        if seconds < 86400 { return "\(seconds / 3600)h ago" }
+        return "\(seconds / 86400)d ago"
     }
 
     // MARK: - Empty
