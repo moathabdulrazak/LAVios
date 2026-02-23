@@ -64,7 +64,7 @@ enum DHConst {
 
     static let obstacleTypes = ["taxi", "bus", "truck", "sports", "van", "ambulance"]
 
-    // Blue-gray palette matching web version
+    // Blue-gray palette matching web version (Dubai skyline)
     static let buildingColors: [UIColor] = [
         UIColor(red: 0.75, green: 0.78, blue: 0.82, alpha: 1),  // #c0c8d0 light blue-gray
         UIColor(red: 0.53, green: 0.60, blue: 0.67, alpha: 1),  // #8899aa medium blue-gray
