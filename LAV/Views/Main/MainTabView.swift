@@ -201,7 +201,7 @@ struct MainTabView: View {
                 sideTab(.funds)
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 16)
+            .padding(.bottom, 18)
             .background(Color.lavBackground)
         }
     }
