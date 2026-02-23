@@ -3,12 +3,14 @@ import SwiftUI
 struct GameDetailView: View {
     let game: GameInfo
     @Environment(GamesViewModel.self) private var gamesVM
+    @Environment(AuthViewModel.self) private var authVM
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTier: EntryTier?
     @State private var showConfirmation = false
     @State private var appeared = false
     @State private var glowPulse = false
     @State private var showGame = false
+    @State private var errorShake: Int = 0
     @Namespace private var tierNS
 
     var body: some View {
@@ -44,6 +46,7 @@ struct GameDetailView: View {
                                 .clipShape(Circle())
                                 .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 1))
                         }
+                        .buttonStyle(CardPressStyle())
                         Spacer()
                     }
                     .padding(.top, 6)
@@ -79,6 +82,7 @@ struct GameDetailView: View {
                 VStack {
                     Spacer()
                     errorToast(error)
+                        .shake(trigger: errorShake)
                         .padding(20)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -87,7 +91,7 @@ struct GameDetailView: View {
             // Custom confirmation modal
             if showConfirmation, let tier = selectedTier {
                 confirmationModal(tier: tier)
-                    .transition(.opacity)
+                    .transition(.scale(scale: 0.9).combined(with: .opacity))
             }
 
             // Match result
@@ -96,12 +100,13 @@ struct GameDetailView: View {
                     gamesVM.resetMatch()
                     if result != .waiting { selectedTier = nil }
                 }
-                .transition(.opacity)
+                .transition(.scale(scale: 0.92).combined(with: .opacity))
             }
 
             // Joining / Submitting overlay
             if gamesVM.isJoining || gamesVM.isSubmitting {
                 joiningOverlay
+                    .transition(.scale(scale: 0.9).combined(with: .opacity))
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -109,16 +114,34 @@ struct GameDetailView: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .navigationBar)
         .animation(.easeInOut(duration: 0.3), value: gamesVM.errorMessage)
-        .animation(.spring(response: 0.4), value: gamesVM.matchResult)
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showConfirmation)
+        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: gamesVM.matchResult)
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: showConfirmation)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: gamesVM.isJoining)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: gamesVM.isSubmitting)
+        .sensoryFeedback(.impact(weight: .medium), trigger: showConfirmation)
+        .sensoryFeedback(.error, trigger: errorShake)
+        .onChange(of: gamesVM.errorMessage) { _, newVal in
+            if newVal != nil {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.4)) {
+                    errorShake += 1
+                }
+            }
+        }
         .fullScreenCover(isPresented: $showGame, onDismiss: {
             if gamesVM.matchData != nil && gamesVM.lastGameScore > 0 {
                 Task { await gamesVM.submitScore() }
             }
         }) {
             if game.gameType == .solsnake {
-                SolSnakeGameView()
-                    .preferredColorScheme(.dark)
+                SolSnakeGameView(
+                    isOnlineMode: true,
+                    entryAmount: gamesVM.solSnakeEntryAmount,
+                    txSignature: gamesVM.solSnakeTxSignature,
+                    verificationToken: gamesVM.solSnakeVerificationToken,
+                    paymentTimestamp: gamesVM.solSnakePaymentTimestamp,
+                    walletAddress: authVM.currentUser?.walletAddress ?? ""
+                )
+                .preferredColorScheme(.dark)
             } else if game.gameType == .warp {
                 WarpGameView(isMatchMode: gamesVM.matchData != nil)
                     .preferredColorScheme(.dark)
@@ -218,6 +241,7 @@ struct GameDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .shadow(color: game.accentColor.opacity(0.5), radius: 16, y: 4)
             }
+            .buttonStyle(CardPressStyle())
             .sensoryFeedback(.impact(weight: .heavy), trigger: showGame)
         }
         .padding(20)
@@ -422,6 +446,7 @@ struct GameDetailView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .shadow(color: selectedTier != nil ? game.accentColor.opacity(0.5) : .clear, radius: 16, y: 4)
         }
+        .buttonStyle(CardPressStyle())
         .disabled(selectedTier == nil)
         .animation(.easeInOut(duration: 0.2), value: selectedTier?.id)
         .sensoryFeedback(.impact(weight: .heavy), trigger: gamesVM.isJoining)
@@ -502,9 +527,16 @@ struct GameDetailView: View {
                     Button {
                         withAnimation { showConfirmation = false }
                         Task {
-                            await gamesVM.joinGame(game: game, tier: tier)
-                            if gamesVM.matchData != nil {
-                                showGame = true
+                            if game.gameType == .solsnake {
+                                await gamesVM.joinSolSnake(tier: tier)
+                                if gamesVM.solSnakePaymentReady {
+                                    showGame = true
+                                }
+                            } else {
+                                await gamesVM.joinGame(game: game, tier: tier)
+                                if gamesVM.matchData != nil {
+                                    showGame = true
+                                }
                             }
                         }
                     } label: {
@@ -528,6 +560,7 @@ struct GameDetailView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                         .shadow(color: game.accentColor.opacity(0.4), radius: 16, y: 4)
                     }
+                    .buttonStyle(CardPressStyle())
                     .sensoryFeedback(.impact(weight: .heavy), trigger: gamesVM.isJoining)
 
                     Button {
@@ -539,6 +572,7 @@ struct GameDetailView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 44)
                     }
+                    .buttonStyle(CardPressStyle())
                 }
                 .padding(.top, 20)
                 .padding(.horizontal, 20)
@@ -645,5 +679,6 @@ struct GameDetailView: View {
         GameDetailView(game: GameInfo.allGames[1])
     }
     .environment(GamesViewModel())
+    .environment(AuthViewModel())
     .preferredColorScheme(.dark)
 }

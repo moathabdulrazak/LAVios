@@ -25,6 +25,13 @@ final class GamesViewModel {
     // Waiting counts per game type
     var waitingCounts: [String: Int] = [:]
 
+    // SolSnake online mode - payment info for Colyseus
+    var solSnakePaymentReady = false
+    var solSnakeEntryAmount: Double = 0
+    var solSnakeTxSignature: String?
+    var solSnakeVerificationToken: String?
+    var solSnakePaymentTimestamp: Int?
+
     private let gameService = GameService.shared
 
     // MARK: - Load Earnings
@@ -136,6 +143,48 @@ final class GamesViewModel {
         isJoining = false
     }
 
+    // MARK: - Join SolSnake (Colyseus flow - pay only, no challenge join)
+
+    @MainActor
+    func joinSolSnake(tier: EntryTier) async {
+        isJoining = true
+        errorMessage = nil
+        solSnakePaymentReady = false
+
+        print("[LAV Game] SolSnake join flow: tier=\(tier.label) amount=\(tier.amount)")
+
+        do {
+            print("[LAV Game] Paying entry...")
+            let payment = try await gameService.payEntry(
+                gameId: "solsnake",
+                amount: tier.amount
+            )
+            print("[LAV Game] Payment response: success=\(payment.success) sig=\(payment.txSignature ?? "nil")")
+
+            guard payment.success else {
+                throw APIError.httpError(statusCode: 400, message: "Payment failed.")
+            }
+
+            // Store payment info for Colyseus room options
+            solSnakeEntryAmount = tier.amount
+            solSnakeTxSignature = payment.txSignature
+            solSnakeVerificationToken = payment.verificationToken
+            solSnakePaymentTimestamp = payment.timestamp
+            solSnakePaymentReady = true
+
+            print("[LAV Game] SolSnake payment ready, opening game in online mode")
+
+        } catch let error as APIError {
+            print("[LAV Game] API error: \(error.errorDescription ?? "unknown")")
+            errorMessage = error.errorDescription
+        } catch {
+            print("[LAV Game] Error: \(error)")
+            errorMessage = "Failed to join game."
+        }
+
+        isJoining = false
+    }
+
     // MARK: - Submit Score
 
     @MainActor
@@ -205,6 +254,11 @@ final class GamesViewModel {
         lastGameDurationMs = 0
         lastInputRecording = []
         lastScoreBreakdown = nil
+        solSnakePaymentReady = false
+        solSnakeEntryAmount = 0
+        solSnakeTxSignature = nil
+        solSnakeVerificationToken = nil
+        solSnakePaymentTimestamp = nil
     }
 }
 

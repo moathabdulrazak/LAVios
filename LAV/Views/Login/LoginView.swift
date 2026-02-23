@@ -14,6 +14,7 @@ struct LoginView: View {
     @State private var ringOpacity: Double = 0
     @State private var pulseRing: Bool = false
     @State private var glowBreath: Bool = false
+    @State private var shakeCount: Int = 0
     @FocusState private var focusedField: LoginField?
 
     enum LoginStep { case username, password }
@@ -48,6 +49,15 @@ struct LoginView: View {
             .ignoresSafeArea()
         }
         .onTapGesture { focusedField = nil }
+        .sensoryFeedback(.selection, trigger: step)
+        .sensoryFeedback(.error, trigger: shakeCount)
+        .onChange(of: authVM.errorMessage) { _, newVal in
+            if newVal != nil {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.4)) {
+                    shakeCount += 1
+                }
+            }
+        }
         .onAppear { startAnimations() }
     }
 
@@ -449,6 +459,7 @@ struct LoginView: View {
                 .stroke(Color.lavRed.opacity(0.1), lineWidth: 1)
         )
         .transition(.move(edge: .top).combined(with: .opacity))
+        .shake(trigger: shakeCount)
     }
 
     // MARK: - Footer

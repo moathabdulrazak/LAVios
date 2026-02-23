@@ -6,6 +6,8 @@ struct MatchResultView: View {
     let onDismiss: () -> Void
 
     @State private var animate = false
+    @State private var trophyPulse = false
+    @State private var hapticFired = false
 
     var body: some View {
         ZStack {
@@ -48,6 +50,7 @@ struct MatchResultView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                                 .shadow(color: game.accentColor.opacity(0.3), radius: 12, y: 4)
                         }
+                        .buttonStyle(CardPressStyle())
                     }
 
                     Button {
@@ -74,9 +77,18 @@ struct MatchResultView: View {
             )
             .shadow(color: resultBorderColor.opacity(0.15), radius: 30)
         }
+        .sensoryFeedback(.success, trigger: hapticFired && result.isWin)
+        .sensoryFeedback(.error, trigger: hapticFired && result.isLoss)
+        .sensoryFeedback(.warning, trigger: hapticFired && result.isWaiting)
         .onAppear {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
                 animate = true
+            }
+            hapticFired = true
+            if case .win = result {
+                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                    trophyPulse = true
+                }
             }
         }
     }
@@ -92,6 +104,7 @@ struct MatchResultView: View {
                     .fill(Color.lavEmerald.opacity(0.12))
                     .frame(width: 100, height: 100)
                     .blur(radius: 20)
+                    .scaleEffect(trophyPulse ? 1.15 : 1)
 
                 Image(systemName: "trophy.fill")
                     .font(.system(size: 44))
@@ -102,6 +115,7 @@ struct MatchResultView: View {
                             endPoint: .bottomTrailing
                         )
                     )
+                    .shadow(color: .lavEmerald.opacity(trophyPulse ? 0.6 : 0.2), radius: trophyPulse ? 16 : 8)
             }
 
         case .loss:
@@ -188,4 +202,13 @@ struct MatchResultView: View {
         case .waiting: return .lavOrange
         }
     }
+}
+
+extension MatchResult {
+    var isWin: Bool {
+        if case .win = self { return true }
+        return false
+    }
+    var isLoss: Bool { self == .loss }
+    var isWaiting: Bool { self == .waiting }
 }

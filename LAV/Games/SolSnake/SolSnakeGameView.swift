@@ -2,9 +2,17 @@ import SwiftUI
 import SpriteKit
 
 struct SolSnakeGameView: View {
+    var isOnlineMode: Bool = true  // Default to online sandbox
+    var entryAmount: Double = 0
+    var txSignature: String? = nil
+    var verificationToken: String? = nil
+    var paymentTimestamp: Int? = nil
+    var walletAddress: String = ""
+
     @State private var vm = SolSnakeViewModel()
     @State private var scene: SolSnakeScene?
     @State private var boostPressed = false
+    @State private var showDebug = true
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -35,9 +43,24 @@ struct SolSnakeGameView: View {
             // Close button
             closeButton
 
-            // Start overlay
-            if !vm.gameStarted {
+            // Start overlay (offline only)
+            if !isOnlineMode && !vm.gameStarted {
                 startOverlay
+            }
+
+            // Online overlays
+            if isOnlineMode && !vm.gameStarted {
+                onlineOverlay
+            }
+
+            // Kill notifications (online)
+            if isOnlineMode && !vm.killNotifications.isEmpty {
+                killNotificationOverlay
+            }
+
+            // Debug overlay (tap close button 3 times to toggle)
+            if showDebug {
+                debugOverlay
             }
 
             // Death flash
@@ -61,14 +84,17 @@ struct SolSnakeGameView: View {
         .statusBarHidden(true)
         .onAppear {
             setupScene()
+            // Force landscape
             AppDelegate.orientationLock = .landscape
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
                 windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscape))
             }
         }
         .onDisappear {
+            vm.cleanup()
             scene?.cleanup()
             scene = nil
+            // Restore portrait
             AppDelegate.orientationLock = .all
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
                 windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .all))
@@ -81,12 +107,30 @@ struct SolSnakeGameView: View {
     private func setupScene() {
         let s = SolSnakeScene(size: CGSize(width: 844, height: 390))
         s.scaleMode = .resizeFill
+        vm.isOnlineMode = isOnlineMode
         vm.scene = s
         vm.setup()
         scene = s
+
+        // Connect to server
+        if isOnlineMode {
+            let skin = Int.random(in: 0..<SNConst.snakeSkins.count)
+            let mode = entryAmount > 0 ? "arena" : "sandbox"
+            print("[SolSnakeGV] Connecting: online=\(isOnlineMode), mode=\(mode), entry=\(entryAmount), wallet=\(walletAddress.prefix(8))..., ts=\(paymentTimestamp.map(String.init) ?? "nil")")
+            vm.connectToServer(
+                playerName: "Player",
+                skin: skin,
+                mode: mode,
+                entryAmount: entryAmount,
+                txSignature: txSignature,
+                verificationToken: verificationToken,
+                walletAddress: walletAddress,
+                paymentTimestamp: paymentTimestamp
+            )
+        }
     }
 
-    // MARK: - Start Overlay
+    // MARK: - Start Overlay (Offline)
 
     private var startOverlay: some View {
         ZStack {
@@ -112,6 +156,165 @@ struct SolSnakeGameView: View {
         .onTapGesture {
             vm.startGame()
         }
+    }
+
+    // MARK: - Online Overlay
+
+    private var onlineOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.85).ignoresSafeArea()
+
+            VStack(spacing: 24) {
+                Text("SOL SNAKE")
+                    .font(.system(size: 36, weight: .black, design: .rounded))
+                    .tracking(4)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.white, Color(uiColor: SNColors.uiPrimary)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+
+                switch vm.connectionState {
+                case .disconnected:
+                    connectionStatusView(text: "Disconnected", showSpinner: false)
+                case .connecting:
+                    connectionStatusView(text: "Connecting...", showSpinner: true)
+                case .lobby(let playerCount):
+                    lobbyView(playerCount: playerCount)
+                case .countdown(let seconds):
+                    countdownView(seconds: seconds)
+                case .playing:
+                    connectionStatusView(text: "Starting...", showSpinner: true)
+                case .gameEnded:
+                    connectionStatusView(text: "Game Ended", showSpinner: false)
+                case .error(let msg):
+                    errorView(message: msg)
+                }
+            }
+        }
+    }
+
+    private func connectionStatusView(text: String, showSpinner: Bool) -> some View {
+        VStack(spacing: 16) {
+            if showSpinner {
+                ProgressView()
+                    .tint(Color(uiColor: SNColors.uiPrimary))
+                    .scaleEffect(1.2)
+            }
+            Text(text)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.white.opacity(0.7))
+        }
+    }
+
+    private func lobbyView(playerCount: Int) -> some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 8) {
+                Image(systemName: "person.2.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color(uiColor: SNColors.uiPrimary))
+                Text("\(playerCount) player\(playerCount == 1 ? "" : "s") in lobby")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+
+            Text("Waiting for game to start...")
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.4))
+
+            ProgressView()
+                .tint(Color(uiColor: SNColors.uiPrimary))
+        }
+    }
+
+    private func countdownView(seconds: Int) -> some View {
+        VStack(spacing: 16) {
+            Text("\(seconds)")
+                .font(.system(size: 64, weight: .black, design: .rounded))
+                .foregroundColor(Color(uiColor: SNColors.uiPrimary))
+                .contentTransition(.numericText())
+                .animation(.spring(response: 0.3), value: seconds)
+
+            Text("Game starting soon...")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.white.opacity(0.7))
+        }
+    }
+
+    private func errorView(message: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 32))
+                .foregroundColor(Color(uiColor: SNColors.uiDanger))
+
+            Text(message)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+
+            Button {
+                let skin = Int.random(in: 0..<SNConst.snakeSkins.count)
+                let mode = entryAmount > 0 ? "arena" : "sandbox"
+                vm.connectToServer(
+                    playerName: "Player",
+                    skin: skin,
+                    mode: mode,
+                    entryAmount: entryAmount,
+                    txSignature: txSignature,
+                    verificationToken: verificationToken,
+                    walletAddress: walletAddress,
+                    paymentTimestamp: paymentTimestamp
+                )
+            } label: {
+                Text("RETRY")
+                    .font(.system(size: 14, weight: .black))
+                    .tracking(1)
+                    .foregroundColor(.black)
+                    .frame(width: 140, height: 44)
+                    .background(Color(uiColor: SNColors.uiPrimary))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
+    }
+
+    // MARK: - Kill Notifications
+
+    private var killNotificationOverlay: some View {
+        VStack {
+            HStack {
+                Spacer()
+                VStack(spacing: 6) {
+                    ForEach(vm.killNotifications) { notification in
+                        HStack(spacing: 8) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(uiColor: SNColors.uiDanger))
+                            Text("Killed \(notification.victimName)")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.white)
+                            if notification.reward > 0 {
+                                Text("+\(String(format: "%.4f", notification.reward)) SOL")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(Color(uiColor: SNColors.uiSuccess))
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                    }
+                }
+                .padding(.top, 50)
+                .padding(.trailing, 16)
+            }
+            Spacer()
+        }
+        .allowsHitTesting(false)
+        .animation(.spring(response: 0.3), value: vm.killNotifications.count)
     }
 
     // MARK: - Close Button
@@ -223,6 +426,14 @@ struct SolSnakeGameView: View {
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.white.opacity(0.6))
                         }
+
+                        // Latency (online only)
+                        if isOnlineMode && vm.latency > 0 {
+                            Text("\(vm.latency)ms")
+                                .font(.system(size: 9, weight: .medium, design: .rounded))
+                                .monospacedDigit()
+                                .foregroundColor(vm.latency < 100 ? .green.opacity(0.6) : .orange.opacity(0.6))
+                        }
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -241,7 +452,7 @@ struct SolSnakeGameView: View {
     // MARK: - Leaderboard
 
     private var leaderboardView: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        return VStack(alignment: .leading, spacing: 2) {
             Text("LEADERBOARD")
                 .font(.system(size: 8, weight: .black))
                 .tracking(1.5)
@@ -249,6 +460,7 @@ struct SolSnakeGameView: View {
                 .padding(.bottom, 2)
 
             ForEach(Array(vm.leaderboard.prefix(5).enumerated()), id: \.element.id) { i, entry in
+                let isLocal = isOnlineMode ? entry.name == "Player" || entry.name == "You" : entry.id == "local"
                 HStack(spacing: 6) {
                     Text("\(i + 1)")
                         .font(.system(size: 10, weight: .bold, design: .rounded))
@@ -256,8 +468,8 @@ struct SolSnakeGameView: View {
                         .frame(width: 14, alignment: .trailing)
 
                     Text(entry.name)
-                        .font(.system(size: 10, weight: entry.id == "local" ? .bold : .medium))
-                        .foregroundColor(entry.id == "local" ? Color(uiColor: SNColors.uiPrimary) : .white)
+                        .font(.system(size: 10, weight: isLocal ? .bold : .medium))
+                        .foregroundColor(isLocal ? Color(uiColor: SNColors.uiPrimary) : .white)
                         .lineLimit(1)
                         .frame(maxWidth: 80, alignment: .leading)
 
@@ -370,5 +582,45 @@ struct SolSnakeGameView: View {
                 .monospacedDigit()
                 .foregroundColor(color)
         }
+    }
+
+    // MARK: - Debug Overlay
+
+    private var debugOverlay: some View {
+        VStack {
+            Spacer()
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("DEBUG")
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .foregroundColor(.yellow)
+                    Text("mode: \(isOnlineMode ? "ONLINE" : "OFFLINE")")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    Text("conn: \(vm.debugConnectionState)")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    Text("started: \(vm.gameStarted ? "YES" : "NO")")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    Text("alive: \(vm.isAlive ? "YES" : "NO")")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    Text("players: \(vm.debugPlayerCount)")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    Text("orbs: \(vm.debugOrbCount)")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    Text("schema: \(vm.debugSchemaInfo)")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    Text("latency: \(vm.latency)ms")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                }
+                .foregroundColor(.green.opacity(0.8))
+                .padding(6)
+                .background(Color.black.opacity(0.7))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(.leading, 16)
+                .padding(.bottom, 80)
+
+                Spacer()
+            }
+        }
+        .allowsHitTesting(false)
     }
 }

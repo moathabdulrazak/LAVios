@@ -31,6 +31,8 @@ struct MainTabView: View {
     @State private var showProfile = false
     @State private var appeared = false
     @State private var playPulse = false
+    @State private var balancePop = false
+    @State private var lastBalance: Double = 0
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -61,6 +63,16 @@ struct MainTabView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(28)
+        }
+        .sensoryFeedback(.selection, trigger: showProfile)
+        .onChange(of: gamesVM.walletBalance) { old, new in
+            guard old != 0, old != new else { return }
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.5)) {
+                balancePop = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                withAnimation(.spring(response: 0.2)) { balancePop = false }
+            }
         }
         .task { await gamesVM.loadEarnings() }
         .onAppear {
@@ -132,6 +144,7 @@ struct MainTabView: View {
                     .fill(Color.lavSurface)
                     .overlay(Capsule().stroke(Color.white.opacity(0.06), lineWidth: 1))
             )
+            .scaleEffect(balancePop ? 1.08 : 1)
         }
         .padding(.horizontal, 20)
         .padding(.top, 6)
@@ -566,6 +579,7 @@ struct ProfileSheet: View {
                     )
             )
         }
+        .buttonStyle(CardPressStyle())
         .padding(.bottom, 8)
     }
 }

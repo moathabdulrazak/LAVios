@@ -6,6 +6,7 @@ struct EarningsView: View {
     @State private var ringProgress: Double = 0
     @State private var glowPulse = false
     @State private var borderRotation: Double = 0
+    @State private var ringFilled = false
 
     var body: some View {
         ZStack {
@@ -39,6 +40,7 @@ struct EarningsView: View {
             }
             .refreshable { await gamesVM.loadEarnings() }
         }
+        .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: ringFilled)
         .onAppear { handleAppear() }
         .onChange(of: gamesVM.earnings?.winRate) { _, newWR in
             if let wr = newWR {
@@ -57,6 +59,7 @@ struct EarningsView: View {
             withAnimation(.spring(response: 1.2, dampingFraction: 0.7).delay(0.4)) {
                 ringProgress = wr / 100.0
             }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { ringFilled = true }
         }
     }
 

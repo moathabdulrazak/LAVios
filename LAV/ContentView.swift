@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var tagOpacity: Double = 0
     @State private var flashOpacity: Double = 0
     @State private var glowRadius: CGFloat = 0
+    @State private var splashPunch = false
 
     var body: some View {
         ZStack {
@@ -45,6 +46,7 @@ struct ContentView: View {
                     .opacity(splashFade)
             }
         }
+        .sensoryFeedback(.impact(weight: .heavy, intensity: 0.7), trigger: splashPunch)
         .task { await runSplashSequence() }
     }
 
@@ -132,6 +134,7 @@ struct ContentView: View {
         Task { await authVM.checkSession() }
  
         // Beat 1: Logo punches in with flash
+        splashPunch = true
         withAnimation(.spring(response: 0.35, dampingFraction: 0.55)) {
             logoScale = 1.0
             logoOpacity = 1.0

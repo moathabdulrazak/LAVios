@@ -37,6 +37,7 @@ struct GamesView: View {
                 GameDetailView(game: game)
             }
         }
+        .sensoryFeedback(.impact(weight: .light), trigger: navigateToGame?.id)
         .onAppear {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appeared = true }
             withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) { glowPulse = true }

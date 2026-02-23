@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bucket
+   uuid = "1593D432-24AA-459A-A5BB-5DEAD14324FA"
+   type = "1"
+   version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "DB28F25F-A556-49C9-B61B-E421B5E252E4"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "LAV/ContentView.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "132"
+            endingLineNumber = "132"
+            landmarkName = "runSplashSequence()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "DB28F25F-A556-49C9-B61B-E421B5E252E4 - 25598f8e00ea44e"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(1) suspend resume partial function for LAV.ContentView.runSplashSequence() async -&gt; ()"
+                  moduleName = "LAV"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/mo/Desktop/LAV/LAV/ContentView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "132"
+                  endingLineNumber = "132"
+                  offsetFromSymbolStart = "173">
+               </Location>
+               <Location
+                  uuid = "DB28F25F-A556-49C9-B61B-E421B5E252E4 - ccd297f3cf5f5f1"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Sendable () async -&gt; () in LAV.ContentView.runSplashSequence() async -&gt; ()"
+                  moduleName = "LAV"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/mo/Desktop/LAV/LAV/ContentView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "132"
+                  endingLineNumber = "132"
+                  offsetFromSymbolStart = "68">
+               </Location>
+               <Location
+                  uuid = "DB28F25F-A556-49C9-B61B-E421B5E252E4 - f170e82f6fd25937"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(1) suspend resume partial function for closure #1 @Sendable () async -&gt; () in LAV.ContentView.runSplashSequence() async -&gt; ()"
+                  moduleName = "LAV"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/mo/Desktop/LAV/LAV/ContentView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "132"
+                  endingLineNumber = "132"
+                  offsetFromSymbolStart = "43">
+               </Location>
+               <Location
+                  uuid = "DB28F25F-A556-49C9-B61B-E421B5E252E4 - ac6bcb6070d08d2c"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(2) await resume partial function for closure #1 @Sendable () async -&gt; () in LAV.ContentView.runSplashSequence() async -&gt; ()"
+                  moduleName = "LAV"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/mo/Desktop/LAV/LAV/ContentView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "132"
+                  endingLineNumber = "132"
+                  offsetFromSymbolStart = "34">
+               </Location>
+               <Location
+                  uuid = "DB28F25F-A556-49C9-B61B-E421B5E252E4 - fe4d554895889d39"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(3) suspend resume partial function for closure #1 @Sendable () async -&gt; () in LAV.ContentView.runSplashSequence() async -&gt; ()"
+                  moduleName = "LAV"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/mo/Desktop/LAV/LAV/ContentView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "132"
+                  endingLineNumber = "132"
+                  offsetFromSymbolStart = "28">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
+</Bucket>

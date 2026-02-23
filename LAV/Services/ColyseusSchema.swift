@@ -438,10 +438,29 @@ final class ColyseusSchemaDecoder {
         decodeLogCount = 0
         decodeBytes(data)
 
-        // Log final root dict keys
+        // Detailed state dump after full decode
         if let root = refs[0] as? NSMutableDictionary {
-            print("[Schema] Root dict keys after decode: \(root.allKeys)")
-            print("[Schema] Total refs after decode: \(refs.count)")
+            print("[Schema] === FULL STATE DECODED ===")
+            print("[Schema] Root keys: \(root.allKeys)")
+            print("[Schema] Total refs: \(refs.count)")
+            for (key, value) in root {
+                if let dict = value as? NSMutableDictionary {
+                    print("[Schema]   '\(key)' = Dict(\(dict.count) entries), keys=\(Array(dict.allKeys).prefix(5))")
+                } else if let arr = value as? NSMutableArray {
+                    print("[Schema]   '\(key)' = Array(\(arr.count) items)")
+                } else {
+                    print("[Schema]   '\(key)' = \(value) (\(type(of: value)))")
+                }
+            }
+            // Dump all refs and their kinds
+            for (refId, kind) in refKinds.sorted(by: { $0.key < $1.key }).prefix(20) {
+                if let dict = refs[refId] as? NSMutableDictionary {
+                    print("[Schema]   ref[\(refId)] \(kind) → Dict(\(dict.count) entries)")
+                } else if let arr = refs[refId] as? NSMutableArray {
+                    print("[Schema]   ref[\(refId)] \(kind) → Array(\(arr.count) items)")
+                }
+            }
+            print("[Schema] === END FULL STATE ===")
         }
         notifyStateChange()
     }
@@ -451,17 +470,28 @@ final class ColyseusSchemaDecoder {
 
     func decodePatch(_ data: Data) {
         patchCount += 1
-        // Reset decode logging for first 3 patches so we can see what they contain
-        if patchCount <= 3 {
+        // Reset decode logging for first 5 patches so we can see what they contain
+        if patchCount <= 5 {
             decodeLogCount = 0
-            print("[Schema] === PATCH #\(patchCount): \(data.count) bytes, first 32: \(data.prefix(32).map { String(format: "%02x", $0) }.joined(separator: " "))")
+            print("[Schema] === PATCH #\(patchCount): \(data.count) bytes, hex: \(data.prefix(64).map { String(format: "%02x", $0) }.joined(separator: " "))")
         }
         let refsBefore = refs.count
         patchSwitchNotFound = 0
         // Patches modify existing refs in place
         decodeBytes(data)
-        if patchCount <= 10 {
-            print("[Schema] Patch #\(patchCount) done: refs \(refsBefore)→\(refs.count), switchOps=\(patchSwitchOps), fieldUpdates=\(patchFieldUpdates), mismatches=\(patchFieldMismatches), switchNotFound=\(patchSwitchNotFound)")
+        if patchCount <= 20 {
+            print("[Schema] Patch #\(patchCount) done: refs \(refsBefore)->\(refs.count), switchOps=\(patchSwitchOps), fieldUpdates=\(patchFieldUpdates), mismatches=\(patchFieldMismatches), switchNotFound=\(patchSwitchNotFound)")
+        }
+        // Log root state for first few patches
+        if patchCount <= 5, let root = refs[0] as? NSMutableDictionary {
+            print("[Schema] Root after patch #\(patchCount): \(root.allKeys)")
+            for (key, value) in root {
+                if let dict = value as? NSMutableDictionary {
+                    print("[Schema]   '\(key)' = Dict(\(dict.count) entries)")
+                } else if let arr = value as? NSMutableArray {
+                    print("[Schema]   '\(key)' = Array(\(arr.count) items)")
+                }
+            }
         }
         notifyStateChange()
     }
@@ -671,9 +701,12 @@ final class ColyseusSchemaDecoder {
 
     // MARK: - Map Decode
 
+    private var mapOpLogCount = 0
+
     private func decodeMapOperation(_ bytes: Data, _ it: inout Int, refId: Int) {
         guard it < bytes.count else { return }
         let operation = bytes[it]; it += 1
+        mapOpLogCount += 1
 
         guard let dict = refs[refId] as? NSMutableDictionary else { return }
 
@@ -696,6 +729,10 @@ final class ColyseusSchemaDecoder {
             mapIndexToKey[refId, default: [:]][index] = dynamicKey
         } else {
             dynamicKey = mapIndexToKey[refId]?[index] ?? "\(index)"
+        }
+
+        if mapOpLogCount <= 30 {
+            print("[Schema] MAP op=0x\(String(format: "%02x", operation)) ref=\(refId) idx=\(index) key='\(dynamicKey)' childType=\(childTypeId) childPrim=\(childPrimitive ?? "nil")")
         }
 
         // DELETE

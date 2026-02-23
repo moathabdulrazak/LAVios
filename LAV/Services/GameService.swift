@@ -90,7 +90,12 @@ final class GameService {
     private static let lamportsPerSOL: Double = 1_000_000_000
 
     func getWalletBalance(walletAddress: String?, userId: String?) async throws -> Double {
-        guard let walletAddress, !walletAddress.isEmpty else { return 0 }
+        guard let walletAddress, !walletAddress.isEmpty else {
+            print("[LAV Wallet] No wallet address, returning 0")
+            return 0
+        }
+
+        print("[LAV Wallet] Fetching balance for \(walletAddress.prefix(8))...")
 
         var request = URLRequest(url: Self.solanaRPC)
         request.httpMethod = "POST"
@@ -100,8 +105,13 @@ final class GameService {
         )
 
         let (data, _) = try await URLSession.shared.data(for: request)
+        let raw = String(data: data, encoding: .utf8) ?? "nil"
+        print("[LAV Wallet] RPC response: \(raw)")
+
         let response = try JSONDecoder().decode(SolanaBalanceResponse.self, from: data)
-        return Double(response.result.value) / Self.lamportsPerSOL
+        let sol = Double(response.result.value) / Self.lamportsPerSOL
+        print("[LAV Wallet] Balance: \(sol) SOL (\(response.result.value) lamports)")
+        return sol
     }
 
     // MARK: - Get Earnings Stats
