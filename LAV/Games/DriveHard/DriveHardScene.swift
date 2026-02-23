@@ -40,7 +40,7 @@ final class DriveHardScene: NSObject, SCNSceneRendererDelegate {
     private var distanceTraveled: Float = 0
     private var nearMissTimer: Float = 0
 
-    // Death camera animation
+    // Death camera animation state
     private var deathAnimTime: Float = 0
     private var deathStartCamPos = SCNVector3Zero
     private var deathStartFOV: CGFloat = 72
