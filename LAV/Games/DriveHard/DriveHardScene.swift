@@ -40,6 +40,13 @@ final class DriveHardScene: NSObject, SCNSceneRendererDelegate {
     private var distanceTraveled: Float = 0
     private var nearMissTimer: Float = 0
 
+    // Death camera animation
+    private var deathAnimTime: Float = 0
+    private var deathStartCamPos = SCNVector3Zero
+    private var deathStartFOV: CGFloat = 72
+    private var deathPlayerX: Float = 0
+    private var trailNode: SCNNode?
+
     // Fixed-point scoring state (matches web deterministic math)
     private var accumulator: Float = 0
     private(set) var frameCount: Int = 0
@@ -80,20 +87,20 @@ final class DriveHardScene: NSObject, SCNSceneRendererDelegate {
     }
 
     private func setupSky() {
-        // Exact sunset gradient from web: #1a0f2e → #3d2463 → #6b2d5c → #ff6b9d → #ff8c42 → #ffa500 → #ff6347 → #ff4500
+        // Dubai clear sky gradient matching web: blue top → golden horizon
         let size = CGSize(width: 2, height: 512)
         UIGraphicsBeginImageContextWithOptions(size, true, 1)
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
 
         let colors: [(CGFloat, UIColor)] = [
-            (0.0,  UIColor(red: 0x1a/255, green: 0x0f/255, blue: 0x2e/255, alpha: 1)),  // #1a0f2e deep twilight purple
-            (0.15, UIColor(red: 0x3d/255, green: 0x24/255, blue: 0x63/255, alpha: 1)),  // #3d2463 rich purple
-            (0.3,  UIColor(red: 0x6b/255, green: 0x2d/255, blue: 0x5c/255, alpha: 1)),  // #6b2d5c purple-violet
-            (0.45, UIColor(red: 0xff/255, green: 0x6b/255, blue: 0x9d/255, alpha: 1)),  // #ff6b9d hot pink
-            (0.6,  UIColor(red: 0xff/255, green: 0x8c/255, blue: 0x42/255, alpha: 1)),  // #ff8c42 vibrant sunset orange
-            (0.75, UIColor(red: 0xff/255, green: 0xa5/255, blue: 0x00/255, alpha: 1)),  // #ffa500 golden orange
-            (0.88, UIColor(red: 0xff/255, green: 0x63/255, blue: 0x47/255, alpha: 1)),  // #ff6347 tomato red
-            (1.0,  UIColor(red: 0xff/255, green: 0x45/255, blue: 0x00/255, alpha: 1)),  // #ff4500 orange-red horizon
+            (0.0,  UIColor(red: 0x1a/255, green: 0x40/255, blue: 0x70/255, alpha: 1)),  // #1a4070 deep sky blue
+            (0.15, UIColor(red: 0x3a/255, green: 0x70/255, blue: 0xa0/255, alpha: 1)),  // #3a70a0 medium blue
+            (0.3,  UIColor(red: 0x5a/255, green: 0x90/255, blue: 0xb8/255, alpha: 1)),  // #5a90b8 sky blue
+            (0.45, UIColor(red: 0x87/255, green: 0xce/255, blue: 0xeb/255, alpha: 1)),  // #87ceeb light sky blue
+            (0.6,  UIColor(red: 0xa8/255, green: 0xd8/255, blue: 0xe8/255, alpha: 1)),  // #a8d8e8 pale blue
+            (0.72, UIColor(red: 0xc8/255, green: 0xd8/255, blue: 0xd0/255, alpha: 1)),  // #c8d8d0 haze transition
+            (0.85, UIColor(red: 0xe0/255, green: 0xc8/255, blue: 0x90/255, alpha: 1)),  // #e0c890 warm golden
+            (1.0,  UIColor(red: 0xf0/255, green: 0xd8/255, blue: 0x80/255, alpha: 1)),  // #f0d880 golden horizon
         ]
 
         let cgColors = colors.map { $0.1.cgColor }
@@ -219,15 +226,28 @@ final class DriveHardScene: NSObject, SCNSceneRendererDelegate {
     }
 
     private func setupScenery() {
-        // Buildings
-        for i in 0..<12 {
+        // Front row buildings (close to road, dense skyline matching web)
+        for i in 0..<14 {
             let bL = DriveHardRoad.createBuilding()
-            bL.position = SCNVector3(-14 - Float.random(in: 0...5), 0, Float(-i) * 12 + Float.random(in: 0...4))
+            bL.position = SCNVector3(-7.5 - Float.random(in: 0...1.5), 0, Float(-i) * 9 + Float.random(in: 0...3))
             scene.rootNode.addChildNode(bL)
             buildingsLeft.append(bL)
 
             let bR = DriveHardRoad.createBuilding()
-            bR.position = SCNVector3(14 + Float.random(in: 0...5), 0, Float(-i) * 12 + Float.random(in: 0...4))
+            bR.position = SCNVector3(7.5 + Float.random(in: 0...1.5), 0, Float(-i) * 9 + Float.random(in: 0...3))
+            scene.rootNode.addChildNode(bR)
+            buildingsRight.append(bR)
+        }
+
+        // Back row buildings (fill skyline depth)
+        for i in 0..<10 {
+            let bL = DriveHardRoad.createBuilding()
+            bL.position = SCNVector3(-13 - Float.random(in: 0...3), 0, Float(-i) * 12 + Float.random(in: 0...4))
+            scene.rootNode.addChildNode(bL)
+            buildingsLeft.append(bL)
+
+            let bR = DriveHardRoad.createBuilding()
+            bR.position = SCNVector3(13 + Float.random(in: 0...3), 0, Float(-i) * 12 + Float.random(in: 0...4))
             scene.rootNode.addChildNode(bR)
             buildingsRight.append(bR)
         }
@@ -274,6 +294,16 @@ final class DriveHardScene: NSObject, SCNSceneRendererDelegate {
         playerNode.position = SCNVector3(DHConst.laneCenter, 0, 0)
         playerNode.isHidden = false
 
+        // Reset camera
+        cameraNode.position = SCNVector3(0, DHConst.cameraY, DHConst.cameraZ)
+        cameraNode.look(at: SCNVector3(0, 0.3, -20))
+        cameraNode.camera?.fieldOfView = DHConst.baseFOV
+        deathAnimTime = 0
+
+        // Remove death trail
+        trailNode?.removeFromParentNode()
+        trailNode = nil
+
         // Reset pools
         for obs in obstaclePool {
             obs.isHidden = true
@@ -301,15 +331,17 @@ final class DriveHardScene: NSObject, SCNSceneRendererDelegate {
     private var lastTime: TimeInterval = 0
 
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        guard gameState == .playing else {
-            lastTime = time
-            return
-        }
-
         var frameTime = Float(time - lastTime)
         lastTime = time
         if frameTime > 0.25 { frameTime = 0.25 }
         if frameTime <= 0 { return }
+
+        if gameState == .gameOver {
+            updateDeathCamera(frameTime)
+            return
+        }
+
+        guard gameState == .playing else { return }
 
         // Fixed timestep accumulator (120Hz, matches web)
         // Cap at 10 ticks (~83ms) so we never lose game time above ~12fps
@@ -512,8 +544,8 @@ final class DriveHardScene: NSObject, SCNSceneRendererDelegate {
             }
         }
 
-        recycleArray(&buildingsLeft, spacing: 12, xRange: 14...19)
-        recycleArray(&buildingsRight, spacing: 12, xRange: 14...19)
+        recycleArray(&buildingsLeft, spacing: 9, xRange: 7.5...16)
+        recycleArray(&buildingsRight, spacing: 9, xRange: 7.5...16)
         recycleArray(&lampsLeft, spacing: 14, xRange: 5.8...5.8)
         recycleArray(&lampsRight, spacing: 14, xRange: 5.8...5.8)
     }
@@ -611,11 +643,77 @@ final class DriveHardScene: NSObject, SCNSceneRendererDelegate {
 
     private func handleGameOver() {
         gameState = .gameOver
-        playerNode.isHidden = true
+        deathPlayerX = playerX
+        deathAnimTime = 0
+        deathStartCamPos = cameraNode.position
+        deathStartFOV = cameraNode.camera?.fieldOfView ?? DHConst.baseFOV
+
+        // Add trail at crash position
+        addDeathTrail()
 
         if score > highScore {
             highScore = score
             UserDefaults.standard.set(highScore, forKey: "drivehard_highscore")
         }
+    }
+
+    // MARK: - Death Camera Animation
+
+    private func addDeathTrail() {
+        let trailLength: Float = 40
+        let trailGeo = SCNBox(width: 0.3, height: 0.02, length: CGFloat(trailLength), chamferRadius: 0)
+        let trailMat = SCNMaterial()
+        trailMat.diffuse.contents = UIColor(red: 1.0, green: 0.5, blue: 0.15, alpha: 0.8)
+        trailMat.emission.contents = UIColor(red: 1.0, green: 0.4, blue: 0.1, alpha: 1)
+        trailMat.lightingModel = .constant
+        trailGeo.firstMaterial = trailMat
+        let trail = SCNNode(geometry: trailGeo)
+        trail.position = SCNVector3(deathPlayerX, 0.03, -trailLength / 2)
+        scene.rootNode.addChildNode(trail)
+        trailNode = trail
+    }
+
+    private func updateDeathCamera(_ dt: Float) {
+        deathAnimTime += dt
+        let t = deathAnimTime
+
+        if t < 0.6 {
+            // Phase 1: Dramatic shake
+            let intensity: Float = 0.12 * (1 - t / 0.6)
+            let shakeX = Float.random(in: -intensity...intensity)
+            let shakeY = Float.random(in: -intensity * 0.5...intensity * 0.5)
+            cameraNode.position = SCNVector3(
+                deathStartCamPos.x + shakeX,
+                deathStartCamPos.y + shakeY,
+                deathStartCamPos.z
+            )
+        } else if t < 2.1 {
+            // Phase 2: Sweeping arc zoom out
+            let p = (t - 0.6) / 1.5
+            let ease = p < 0.5 ? 2 * p * p : 1 - pow(-2 * p + 2, 2) / 2
+            let target = SCNVector3(deathPlayerX * 0.2 + 3, 16, 22)
+            cameraNode.position = SCNVector3(
+                deathStartCamPos.x + (target.x - deathStartCamPos.x) * ease,
+                deathStartCamPos.y + (target.y - deathStartCamPos.y) * ease,
+                deathStartCamPos.z + (target.z - deathStartCamPos.z) * ease
+            )
+            cameraNode.camera?.fieldOfView = deathStartFOV + CGFloat(ease) * 18
+        } else if t < 3.5 {
+            // Phase 3: Settle at overview
+            let p = (t - 2.1) / 1.4
+            let ease: Float = 1 - pow(1 - p, 3)
+            let arcEnd = SCNVector3(deathPlayerX * 0.2 + 3, 16, 22)
+            let settleEnd = SCNVector3(deathPlayerX * 0.15 + 2, 17, 24)
+            cameraNode.position = SCNVector3(
+                arcEnd.x + (settleEnd.x - arcEnd.x) * ease,
+                arcEnd.y + (settleEnd.y - arcEnd.y) * ease,
+                arcEnd.z + (settleEnd.z - arcEnd.z) * ease
+            )
+            cameraNode.camera?.fieldOfView = deathStartFOV + 18 + CGFloat(ease) * 5
+        }
+
+        // Look at crash area throughout animation
+        let lookT = min(t / 3.5, 1)
+        cameraNode.look(at: SCNVector3(deathPlayerX * 0.15, 0.3 + lookT * 1.5, -4 + lookT * 4))
     }
 }

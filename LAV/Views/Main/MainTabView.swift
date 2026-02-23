@@ -1,9 +1,8 @@
 import SwiftUI
 
 enum AppTab: String, CaseIterable, Identifiable {
-    case results = "Results"
+    case earnings = "Results"
     case play = "Play"
-    case earnings = "Earnings"
     case funds = "Funds"
 
     var id: String { rawValue }
@@ -11,8 +10,7 @@ enum AppTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .play: return "gamecontroller.fill"
-        case .results: return "trophy.fill"
-        case .earnings: return "chart.bar.fill"
+        case .earnings: return "trophy.fill"
         case .funds: return "wallet.pass.fill"
         }
     }
@@ -20,8 +18,7 @@ enum AppTab: String, CaseIterable, Identifiable {
     var color: Color {
         switch self {
         case .play: return .lavEmerald
-        case .results: return .lavCyan
-        case .earnings: return .lavPurple
+        case .earnings: return .lavCyan
         case .funds: return .lavYellow
         }
     }
@@ -46,12 +43,10 @@ struct MainTabView: View {
                     .staggerIn(appeared: appeared, delay: 0)
 
                 TabView(selection: $selectedTab) {
-                    ResultsView()
-                        .tag(AppTab.results)
-                    GamesView()
-                        .tag(AppTab.play)
                     EarningsView()
                         .tag(AppTab.earnings)
+                    GamesView()
+                        .tag(AppTab.play)
                     FundsView()
                         .tag(AppTab.funds)
                 }
@@ -192,8 +187,6 @@ struct MainTabView: View {
             .allowsHitTesting(false)
 
             HStack(alignment: .bottom, spacing: 0) {
-                sideTab(.results)
-                Spacer()
                 sideTab(.earnings)
                 Spacer()
                 centerPlayButton

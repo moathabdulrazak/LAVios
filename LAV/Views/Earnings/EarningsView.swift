@@ -104,10 +104,10 @@ struct EarningsView: View {
     private var headerSection: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Earnings")
+                Text("Results")
                     .font(.system(size: 26, weight: .black))
                     .foregroundColor(.white)
-                Text("Your performance overview")
+                Text("Earnings & match history")
                     .font(.system(size: 13))
                     .foregroundColor(.lavTextSecondary)
             }

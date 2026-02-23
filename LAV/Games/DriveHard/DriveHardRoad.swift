@@ -87,7 +87,7 @@ enum DriveHardRoad {
 
     static func createGround() -> SCNNode {
         let geo = SCNPlane(width: 250, height: 350)
-        geo.firstMaterial = DriveHardCar.toonMaterial(color: UIColor(red: 0.33, green: 0.8, blue: 0.33, alpha: 1))
+        geo.firstMaterial = DriveHardCar.toonMaterial(color: UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1)) // #333333 dark gray matching web
         let node = SCNNode(geometry: geo)
         node.eulerAngles.x = -.pi / 2
         node.position.y = -0.01
@@ -97,7 +97,7 @@ enum DriveHardRoad {
     // MARK: - Sidewalks
 
     static func createSidewalks() -> [SCNNode] {
-        let swMat = DriveHardCar.toonMaterial(color: UIColor(red: 0.73, green: 0.73, blue: 0.67, alpha: 1))
+        let swMat = DriveHardCar.toonMaterial(color: UIColor(red: 0.8, green: 0.73, blue: 0.63, alpha: 1)) // #ccbba0 sandy tan matching web
         return [-6.0, 6.0].map { x -> SCNNode in
             let geo = SCNPlane(width: 1.5, height: 350)
             geo.firstMaterial = swMat
@@ -153,9 +153,9 @@ enum DriveHardRoad {
 
     static func createBuilding() -> SCNNode {
         let group = SCNNode()
-        let h = Float.random(in: 4...12)
-        let w = Float.random(in: 2.5...5.0)
-        let d = Float.random(in: 2.5...4.5)
+        let h = Float.random(in: 12...35)
+        let w = Float.random(in: 3.0...5.5)
+        let d = Float.random(in: 3.0...5.0)
         let color = DHConst.buildingColors.randomElement()!
 
         let bodyGeo = SCNBox(width: CGFloat(w), height: CGFloat(h), length: CGFloat(d), chamferRadius: 0.25)
@@ -176,16 +176,17 @@ enum DriveHardRoad {
         // Windows (front face)
         let winOn = DriveHardCar.emissiveMaterial(color: UIColor(red: 1, green: 0.93, blue: 0.67, alpha: 1))
         let winOff = DriveHardCar.toonMaterial(color: UIColor(red: 0.2, green: 0.27, blue: 0.33, alpha: 1))
-        let rows = min(5, Int(h / 1.5))
-        let cols = min(3, Int(w / 0.9))
+        let rows = min(8, Int(h / 3.5))
+        let cols = min(4, Int(w / 1.2))
         let winGeo = SCNPlane(width: 0.45, height: 0.6)
+        let rowSpacing = (h - 3) / Float(max(rows, 1))
         for r in 0..<rows {
             for c in 0..<cols {
                 let lit = Float.random(in: 0...1) > 0.35
                 let win = SCNNode(geometry: winGeo)
                 win.geometry?.firstMaterial = lit ? winOn : winOff
-                let wx = (Float(c) - Float(cols - 1) / 2) * 0.8
-                let wy: Float = 1.0 + Float(r) * 1.5
+                let wx = (Float(c) - Float(cols - 1) / 2) * 1.0
+                let wy: Float = 2.0 + Float(r) * rowSpacing
                 win.position = SCNVector3(wx, wy, d / 2 + 0.01)
                 group.addChildNode(win)
             }

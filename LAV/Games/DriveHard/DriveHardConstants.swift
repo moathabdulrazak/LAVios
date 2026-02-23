@@ -64,15 +64,16 @@ enum DHConst {
 
     static let obstacleTypes = ["taxi", "bus", "truck", "sports", "van", "ambulance"]
 
+    // Blue-gray palette matching web version
     static let buildingColors: [UIColor] = [
-        UIColor(red: 1.0, green: 0.4, blue: 0.47, alpha: 1),
-        UIColor(red: 0.4, green: 0.73, blue: 1.0, alpha: 1),
-        UIColor(red: 1.0, green: 0.8, blue: 0.27, alpha: 1),
-        UIColor(red: 0.67, green: 0.53, blue: 1.0, alpha: 1),
-        UIColor(red: 0.53, green: 0.93, blue: 0.73, alpha: 1),
-        UIColor(red: 1.0, green: 0.6, blue: 0.33, alpha: 1),
-        UIColor(red: 1.0, green: 0.53, blue: 0.67, alpha: 1),
-        UIColor(red: 0.47, green: 0.87, blue: 1.0, alpha: 1),
+        UIColor(red: 0.75, green: 0.78, blue: 0.82, alpha: 1),  // #c0c8d0 light blue-gray
+        UIColor(red: 0.53, green: 0.60, blue: 0.67, alpha: 1),  // #8899aa medium blue-gray
+        UIColor(red: 0.69, green: 0.72, blue: 0.75, alpha: 1),  // #b0b8c0 silver blue
+        UIColor(red: 0.44, green: 0.53, blue: 0.63, alpha: 1),  // #7088a0 steel blue
+        UIColor(red: 0.63, green: 0.66, blue: 0.69, alpha: 1),  // #a0a8b0 cool gray
+        UIColor(red: 0.56, green: 0.63, blue: 0.69, alpha: 1),  // #90a0b0 slate
+        UIColor(red: 0.82, green: 0.85, blue: 0.88, alpha: 1),  // #d0d8e0 light silver
+        UIColor(red: 0.38, green: 0.50, blue: 0.63, alpha: 1),  // #6080a0 deep blue-gray
     ]
 }
 
