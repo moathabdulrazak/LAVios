@@ -133,12 +133,7 @@ final class DriveHardScene: NSObject, SCNSceneRendererDelegate {
         dir.light?.type = .directional
         dir.light?.color = UIColor(red: 1.0, green: 0.96, blue: 0.91, alpha: 1) // 0xfff5e8
         dir.light?.intensity = 1600
-        dir.light?.castsShadow = true
-        dir.light?.shadowMapSize = CGSize(width: 1024, height: 1024)
-        dir.light?.shadowMode = .deferred
-        dir.light?.shadowRadius = 3
-        dir.light?.shadowCascadeCount = 2
-        dir.light?.maximumShadowDistance = 60
+        dir.light?.castsShadow = false
         dir.position = SCNVector3(5, 18, 10)
         dir.eulerAngles = SCNVector3(-0.8, 0.3, 0)
         scene.rootNode.addChildNode(dir)
@@ -303,6 +298,10 @@ final class DriveHardScene: NSObject, SCNSceneRendererDelegate {
         // Remove death trail
         trailNode?.removeFromParentNode()
         trailNode = nil
+
+        // Reset fog
+        scene.fogStartDistance = 55
+        scene.fogEndDistance = 130
 
         // Reset pools
         for obs in obstaclePool {
@@ -676,44 +675,73 @@ final class DriveHardScene: NSObject, SCNSceneRendererDelegate {
     private func updateDeathCamera(_ dt: Float) {
         deathAnimTime += dt
         let t = deathAnimTime
+        let overallT = min(t / 3.5, 1.0)
+
+        let sX = deathStartCamPos.x
+        let sY = deathStartCamPos.y
+        let sZ = deathStartCamPos.z
+
+        var camX = sX
+        var camY = sY
+        var camZ = sZ
 
         if t < 0.6 {
-            // Phase 1: Dramatic shake
-            let intensity: Float = 0.12 * (1 - t / 0.6)
-            let shakeX = Float.random(in: -intensity...intensity)
-            let shakeY = Float.random(in: -intensity * 0.5...intensity * 0.5)
-            cameraNode.position = SCNVector3(
-                deathStartCamPos.x + shakeX,
-                deathStartCamPos.y + shakeY,
-                deathStartCamPos.z
-            )
-        } else if t < 2.1 {
-            // Phase 2: Sweeping arc zoom out
-            let p = (t - 0.6) / 1.5
-            let ease = p < 0.5 ? 2 * p * p : 1 - pow(-2 * p + 2, 2) / 2
-            let target = SCNVector3(deathPlayerX * 0.2 + 3, 16, 22)
-            cameraNode.position = SCNVector3(
-                deathStartCamPos.x + (target.x - deathStartCamPos.x) * ease,
-                deathStartCamPos.y + (target.y - deathStartCamPos.y) * ease,
-                deathStartCamPos.z + (target.z - deathStartCamPos.z) * ease
-            )
-            cameraNode.camera?.fieldOfView = deathStartFOV + CGFloat(ease) * 18
-        } else if t < 3.5 {
-            // Phase 3: Settle at overview
-            let p = (t - 2.1) / 1.4
-            let ease: Float = 1 - pow(1 - p, 3)
-            let arcEnd = SCNVector3(deathPlayerX * 0.2 + 3, 16, 22)
-            let settleEnd = SCNVector3(deathPlayerX * 0.15 + 2, 17, 24)
-            cameraNode.position = SCNVector3(
-                arcEnd.x + (settleEnd.x - arcEnd.x) * ease,
-                arcEnd.y + (settleEnd.y - arcEnd.y) * ease,
-                arcEnd.z + (settleEnd.z - arcEnd.z) * ease
-            )
-            cameraNode.camera?.fieldOfView = deathStartFOV + 18 + CGFloat(ease) * 5
+            // Phase 1: Dramatic pause — slight upward drift + shake (matches web)
+            let p = t / 0.6
+            let e1 = p * p * (3 - 2 * p) // smoothstep
+            camY = sY + e1 * 3
+            camZ = sZ + e1 * 2
+            camX = sX * (1 - e1 * 0.3)
+
+            let shake: Float = 0.08 * (1 - p)
+            camX += Float.random(in: -shake...shake)
+            camY += Float.random(in: -shake * 0.5...shake * 0.5)
+
+            cameraNode.camera?.fieldOfView = deathStartFOV + CGFloat(e1) * 2
+        } else if t < 2.8 {
+            // Phase 2: Sweeping arc pullout — the BIG cinematic move (matches web)
+            let p2 = (t - 0.6) / 2.2
+            let e2: Float = 1 - pow(1 - p2, 3) // easeOutCubic
+
+            let p1Y = sY + 3
+            let p1Z = sZ + 2
+            let p1X = sX * 0.7
+
+            // Orbital motion for cinematic sweep
+            let orbitAngle = 0.4 * e2
+            let orbitRadius: Float = 5 * e2
+
+            camY = p1Y + e2 * 30
+            camZ = p1Z + e2 * 12 + sin(orbitAngle) * orbitRadius
+            camX = p1X + cos(orbitAngle) * orbitRadius * 0.5
+
+            cameraNode.camera?.fieldOfView = deathStartFOV + 2 + CGFloat(e2) * 10
+        } else {
+            // Phase 3: Settle into final overhead position (matches web)
+            let p3 = min((t - 2.8) / 0.7, 1.0)
+            let e3 = p3 * p3 * (3 - 2 * p3) // smoothstep
+
+            let p2Y = sY + 33
+            let p2Z = sZ + 14 + sin(0.4) * 5
+            let p2X = sX * 0.7 + cos(0.4) * 5 * 0.5
+
+            camY = p2Y
+            camZ = p2Z
+            camX = p2X * (1 - e3 * 0.5)
+
+            cameraNode.camera?.fieldOfView = deathStartFOV + 12 - CGFloat(e3) * 3
         }
 
-        // Look at crash area throughout animation
-        let lookT = min(t / 3.5, 1)
-        cameraNode.look(at: SCNVector3(deathPlayerX * 0.15, 0.3 + lookT * 1.5, -4 + lookT * 4))
+        cameraNode.position = SCNVector3(camX, camY, camZ)
+
+        // LookAt: smoothly transition from far ahead to trail view
+        let lookEase: Float = 1 - pow(1 - overallT, 2)
+        let lookZ: Float = -20 + lookEase * 12
+        cameraNode.look(at: SCNVector3(camX * 0.3, 0, lookZ))
+
+        // Push fog back to reveal trail during zoom-out
+        let fogT = min(t / 2.0, 1.0)
+        scene.fogStartDistance = CGFloat(40 + fogT * 80)
+        scene.fogEndDistance = CGFloat(100 + fogT * 150)
     }
 }

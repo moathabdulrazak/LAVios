@@ -38,8 +38,8 @@ enum DHConst {
     // Camera
     static let cameraY: Float = 5.5
     static let cameraZ: Float = 9.0
-    static let baseFOV: CGFloat = 72
-    static let maxExtraFOV: CGFloat = 18
+    static let baseFOV: CGFloat = 80
+    static let maxExtraFOV: CGFloat = 22
 
     // Fixed-point scoring (deterministic, matches web)
     static let fpScale = 1000

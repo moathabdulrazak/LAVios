@@ -482,34 +482,57 @@ struct EarningsView: View {
         let amount = game.amount ?? 0
 
         return HStack(spacing: 12) {
-            // Game type icon
+            // Game-specific icon
             Circle()
                 .fill((isWin ? Color.lavEmerald : Color.lavRed).opacity(0.1))
-                .frame(width: 36, height: 36)
+                .frame(width: 40, height: 40)
                 .overlay(
-                    Image(systemName: isWin ? "checkmark" : "xmark")
-                        .font(.system(size: 13, weight: .bold))
+                    Image(systemName: gameIcon(game.gameType ?? ""))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(isWin ? .lavEmerald : .lavRed)
                 )
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(gameDisplayName(game.gameType ?? ""))
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.white)
-                Text(relativeTime(game.createdAt))
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.lavTextMuted)
+
+                HStack(spacing: 6) {
+                    Text(isWin ? "Won" : "Lost")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(isWin ? .lavEmerald : .lavRed)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background((isWin ? Color.lavEmerald : Color.lavRed).opacity(0.1))
+                        .clipShape(Capsule())
+
+                    Text(relativeTime(game.createdAt))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.lavTextMuted)
+                }
             }
 
             Spacer()
 
             Text(String(format: "%@%.4f", amount >= 0 ? "+" : "", amount))
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.system(size: 15, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .foregroundColor(amount >= 0 ? .lavEmerald : .lavRed)
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 4)
+    }
+
+    private func gameIcon(_ type: String) -> String {
+        switch type {
+        case "drivehard": return "car.fill"
+        case "solsnake": return "circle.grid.cross.fill"
+        case "rocketsol": return "flame.fill"
+        case "warp": return "waveform.path"
+        case "dropfusion": return "drop.fill"
+        case "bountyboard": return "target"
+        default: return "gamecontroller.fill"
+        }
     }
 
     private func gameDisplayName(_ type: String) -> String {
